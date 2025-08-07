@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title><%= agenda ? "Editar" : "Nuevo" %> Contacto</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <h1><%= agenda ? "Editar" : "Nuevo" %> Contacto</h1>
+  <form action="<%= agenda ? '/agenda/edit/' + agenda.id : '/agenda/new' %>" method="POST">
+    <input type="text" name="nombres" placeholder="Nombres" value="<%= agenda?.nombres || '' %>" required>
+    <input type="text" name="apellidos" placeholder="Apellidos" value="<%= agenda?.apellidos || '' %>" required>
+    <input type="text" name="celular" placeholder="Celular" value="<%= agenda?.celular || '' %>" required>
+    <input type="email" name="correo" placeholder="Correo" value="<%= agenda?.correo || '' %>" required>
+    <button type="submit">💾 Guardar</button>
+  </form>
+  <a href="/agenda" class="back-link">⬅ Volver</a>
+</body>
+</html>

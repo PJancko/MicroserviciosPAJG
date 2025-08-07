@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Agenda CRUD</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+
+  <h1>Agenda CRUD</h1>
+
+  <h2>Agregar / Editar Contacto</h2>
+  <form id="agendaForm">
+    <input type="hidden" id="id">
+    <input type="text" id="nombres" placeholder="Nombres" required>
+    <input type="text" id="apellidos" placeholder="Apellidos" required><br>
+    <input type="date" id="fecha_nacimiento" required>
+    <input type="text" id="direccion" placeholder="Dirección" required><br>
+    <input type="text" id="celular" placeholder="Celular" required>
+    <input type="email" id="correo" placeholder="Correo" required><br>
+    <button type="submit">Guardar</button>
+    <button type="button" onclick="limpiarFormulario()">Cancelar</button>
+  </form>
+
+  <h2>Lista de Contactos</h2>
+  <table id="agendaTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombres</th>
+        <th>Apellidos</th>
+        <th>Fecha Nac.</th>
+        <th>Dirección</th>
+        <th>Celular</th>
+        <th>Correo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api/agenda';
+
+    const form = document.getElementById('agendaForm');
+    const tbody = document.querySelector('#agendaTable tbody');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        nombres: form.nombres.value,
+        apellidos: form.apellidos.value,
+        fecha_nacimiento: form.fecha_nacimiento.value,
+        direccion: form.direccion.value,
+        celular: form.celular.value,
+        correo: form.correo.value
+      };
+
+      const id = form.id.value;
+      if (id) {
+        await fetch(`${API_URL}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+
+      limpiarFormulario();
+      cargarContactos();
+    });
+
+    function limpiarFormulario() {
+      form.reset();
+      form.id.value = '';
+    }
+
+    async function cargarContactos() {
+      const res = await fetch(API_URL);
+      const contactos = await res.json();
+      tbody.innerHTML = '';
+      contactos.forEach(c => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.nombres}</td>
+          <td>${c.apellidos}</td>
+          <td>${c.fecha_nacimiento}</td>
+          <td>${c.direccion}</td>
+          <td>${c.celular}</td>
+          <td>${c.correo}</td>
+          <td>
+            <button onclick='editar(${JSON.stringify(c)})'>Editar</button>
+            <button onclick='eliminar(${c.id})'>Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function editar(contacto) {
+      form.id.value = contacto.id;
+      form.nombres.value = contacto.nombres;
+      form.apellidos.value = contacto.apellidos;
+      form.fecha_nacimiento.value = contacto.fecha_nacimiento;
+      form.direccion.value = contacto.direccion;
+      form.celular.value = contacto.celular;
+      form.correo.value = contacto.correo;
+    }
+
+    async function eliminar(id) {
+      if (confirm('¿Estás seguro de eliminar este contacto?')) {
+        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        cargarContactos();
+      }
+    }
+
+    cargarContactos();
+  </script>
+</body>
+</html>

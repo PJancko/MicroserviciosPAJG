@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Agenda</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <h1>Lista de Contactos</h1>
+  <div style="text-align: center;">
+    <a href="/agenda/new">➕ Nuevo contacto</a>
+  </div>
+  <ul>
+    <% agenda.forEach(c => { %>
+      <li>
+        <div>
+          <strong><%= c.nombres %> <%= c.apellidos %></strong><br>
+          <%= c.celular %> · <%= c.correo %>
+        </div>
+        <div>
+          <a href="/agenda/edit/<%= c.id %>">✏️ Editar</a>
+          <form action="/agenda/delete/<%= c.id %>" method="POST" style="display:inline;">
+            <button type="submit">🗑️ Eliminar</button>
+          </form>
+        </div>
+      </li>
+    <% }); %>
+  </ul>
+</body>
+</html>
