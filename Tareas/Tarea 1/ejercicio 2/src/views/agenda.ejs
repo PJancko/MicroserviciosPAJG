@@ -1,30 +1,45 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Agenda</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <h1>Lista de Contactos</h1>
-  <div style="text-align: center;">
-    <a href="/agenda/new">➕ Nuevo contacto</a>
-  </div>
-  <ul>
-    <% agenda.forEach(c => { %>
-      <li>
-        <div>
-          <strong><%= c.nombres %> <%= c.apellidos %></strong><br>
-          <%= c.celular %> · <%= c.correo %>
-        </div>
-        <div>
-          <a href="/agenda/edit/<%= c.id %>">✏️ Editar</a>
-          <form action="/agenda/delete/<%= c.id %>" method="POST" style="display:inline;">
-            <button type="submit">🗑️ Eliminar</button>
-          </form>
-        </div>
-      </li>
-    <% }); %>
-  </ul>
+
+  <!-- Header -->
+  <header>
+    <h1>📇 Agenda de Contactos</h1>
+    <nav>
+      <a href="/agenda/new">➕ Nuevo contacto</a>
+    </nav>
+  </header>
+
+  <!-- Contenedor principal -->
+  <main class="container">
+    <% if (agenda.length === 0) { %>
+      <p style="text-align:center; margin-top:2rem;">No hay contactos aún. <a href="/agenda/new">Crea uno nuevo</a>.</p>
+    <% } else { %>
+      <div class="contact-list">
+        <% agenda.forEach(c => { %>
+          <div class="contact-card">
+            <div class="contact-name"><%= c.nombres %> <%= c.apellidos %></div>
+            <div class="contact-info">📅 <%= c.fecha_nacimiento %></div>
+            <div class="contact-info">🏠 <%= c.direccion %></div>
+            <div class="contact-info">📱 <%= c.celular %></div>
+            <div class="contact-info">📧 <%= c.correo %></div>
+
+            <div class="actions">
+              <a class="btn btn-edit" href="/agenda/edit/<%= c.id %>">✏️ Editar</a>
+              <form action="/agenda/delete/<%= c.id %>" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-delete">🗑 Eliminar</button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </main>
+
 </body>
 </html>

@@ -1,4 +1,3 @@
-// src/routes/agenda.routes.ts
 import { Router } from "express";
 import * as controller from "../controller/agenda.controller";
 

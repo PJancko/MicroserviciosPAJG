@@ -1,4 +1,3 @@
-// src/controller/agenda.controller.ts
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { Agenda } from "../entity/Agenda";

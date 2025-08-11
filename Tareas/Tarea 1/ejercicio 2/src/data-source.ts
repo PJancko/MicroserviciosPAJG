@@ -7,7 +7,7 @@ export const AppDataSource = new DataSource({
     host: "localhost",
     port: 3306,
     username: "root",
-    password: "", // Cambia si tienes clave
+    password: "",
     database: "agenda_db",
     synchronize: true,
     logging: false,
