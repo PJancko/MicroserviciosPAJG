@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title><%= agenda ? "Editar" : "Nuevo" %> Contacto</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <header>
+    <h1><%= agenda ? "✏️ Editar" : "➕ Nuevo" %> Contacto</h1>
+    <nav>
+      <a href="/agenda">⬅ Volver</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <form class="contact-form" action="<%= agenda ? '/agenda/edit/' + agenda._id.toString() : '/agenda/new' %>" method="POST">
+      <input type="text" name="nombres" placeholder="Nombres" value="<%= agenda?.nombres || '' %>" required>
+      <input type="text" name="apellidos" placeholder="Apellidos" value="<%= agenda?.apellidos || '' %>" required>
+      <input type="date" name="fecha_nacimiento" value="<%= agenda?.fecha_nacimiento ? new Date(agenda.fecha_nacimiento).toISOString().split('T')[0] : '' %>" required>
+      <input type="text" name="direccion" placeholder="Dirección" value="<%= agenda?.direccion || '' %>" required>
+      <input type="text" name="celular" placeholder="Celular" value="<%= agenda?.celular || '' %>" required>
+      <input type="email" name="correo" placeholder="Correo" value="<%= agenda?.correo || '' %>" required>
+      <button type="submit" class="btn btn-save">💾 Guardar</button>
+    </form>
+  </main>
+
+</body>
+</html>
