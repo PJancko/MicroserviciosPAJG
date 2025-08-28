@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Tarea</title>
+</head>
+<body>
+  <h1>Editar Tarea</h1>
+  <form action="/actualizar/<%= tarea._id %>" method="POST">
+    <label>Título:</label>
+    <input type="text" name="titulo" value="<%= tarea.titulo %>" required><br><br>
+    <label>Descripción:</label>
+    <textarea name="descripcion"><%= tarea.descripcion %></textarea><br><br>
+    <label>Estado:</label>
+    <select name="estado">
+      <option value="pendiente" <%= tarea.estado === "pendiente" ? "selected" : "" %>>Pendiente</option>
+      <option value="en progreso" <%= tarea.estado === "en progreso" ? "selected" : "" %>>En Progreso</option>
+      <option value="completado" <%= tarea.estado === "completado" ? "selected" : "" %>>Completado</option>
+    </select><br><br>
+    <button type="submit">Actualizar</button>
+  </form>
+  <a href="/">Volver</a>
+</body>
+</html>

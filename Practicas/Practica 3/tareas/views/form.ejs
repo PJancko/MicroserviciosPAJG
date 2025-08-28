@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Nueva Tarea</title>
+</head>
+<body>
+  <h1>Nueva Tarea</h1>
+  <form action="/agregar" method="POST">
+    <label>Título:</label>
+    <input type="text" name="titulo" required><br><br>
+    <label>Descripción:</label>
+    <textarea name="descripcion"></textarea><br><br>
+    <label>Estado:</label>
+    <select name="estado">
+      <option value="pendiente">Pendiente</option>
+      <option value="en progreso">En Progreso</option>
+      <option value="completado">Completado</option>
+    </select><br><br>
+    <button type="submit">Guardar</button>
+  </form>
+  <a href="/">Volver</a>
+</body>
+</html>
