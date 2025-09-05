@@ -1,281 +1,216 @@
-// routes/detalles.js
-const express = require('express');
-const router = express.Router();
-const pool = require('../db');
+import { Router } from "express";
+import pool from "../db.js";
+
+const router = Router();
+
+/**
+ * Función auxiliar para recalcular el total de una factura
+ */
+async function recalcularTotal(factura_id) {
+  await pool.query(
+    `UPDATE facturas f
+     SET f.total = (
+       SELECT IFNULL(SUM(df.subtotal), 0)
+       FROM detalle_facturas df
+       WHERE df.factura_id = f.id
+     )
+     WHERE f.id = ?`,
+    [factura_id]
+  );
+}
 
 /**
  * @swagger
- * tags:
- *   name: Detalles
- *   description: Gestión de detalles de facturas
+ * components:
+ *   schemas:
+ *     DetalleFactura:
+ *       type: object
+ *       required:
+ *         - factura_id
+ *         - producto_id
+ *         - cantidad
+ *         - precio
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID autogenerado del detalle
+ *         factura_id:
+ *           type: integer
+ *         producto_id:
+ *           type: integer
+ *         cantidad:
+ *           type: integer
+ *         precio:
+ *           type: number
+ *           format: float
+ *         subtotal:
+ *           type: number
+ *           format: float
+ *       example:
+ *         id: 1
+ *         factura_id: 1
+ *         producto_id: 2
+ *         cantidad: 3
+ *         precio: 25.00
+ *         subtotal: 75.00
  */
 
 /**
  * @swagger
- * /api/detalles/{facturaId}:
+ * /detalles:
  *   post:
  *     summary: Añadir un detalle a una factura
  *     tags: [Detalles]
- *     parameters:
- *       - in: path
- *         name: facturaId
- *         schema:
- *           type: integer
- *         required: true
- *         description: ID de la factura
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               producto_id:
- *                 type: integer
- *               cantidad:
- *                 type: integer
- *               precio:
- *                 type: number
- *                 format: decimal
+ *             $ref: '#/components/schemas/DetalleFactura'
  *     responses:
  *       201:
- *         description: Detalle agregado
- *       500:
- *         description: Error del servidor
+ *         description: Detalle agregado correctamente
  */
-router.post('/:facturaId', async (req, res) => {
-    const { facturaId } = req.params;
-    const { producto_id, cantidad, precio } = req.body;
+router.post("/", async (req, res) => {
+  try {
+    const { factura_id, producto_id, cantidad, precio } = req.body;
 
-    try {
-        const conn = await pool.getConnection();
-        await conn.beginTransaction();
+    const [result] = await pool.query(
+      "INSERT INTO detalle_facturas (factura_id, producto_id, cantidad, precio) VALUES (?, ?, ?, ?)",
+      [factura_id, producto_id, cantidad, precio]
+    );
 
-        const [result] = await conn.execute(
-            `INSERT INTO detalle_facturas (factura_id, producto_id, cantidad, precio)
-             VALUES (?, ?, ?, ?)`,
-            [facturaId, producto_id, cantidad, precio]
-        );
+    // Recalcular total
+    await recalcularTotal(factura_id);
 
-        const [totales] = await conn.execute(
-            `SELECT SUM(subtotal) AS total FROM detalle_facturas WHERE factura_id = ?`,
-            [facturaId]
-        );
-
-        await conn.execute(
-            `UPDATE facturas SET total = ? WHERE id = ?`,
-            [totales[0].total || 0, facturaId]
-        );
-
-        await conn.commit();
-        conn.release();
-
-        res.status(201).json({ message: 'Detalle agregado y total actualizado', detalleId: result.insertId });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al agregar detalle' });
-    }
+    res.status(201).json({ id: result.insertId, factura_id, producto_id, cantidad, precio });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 /**
  * @swagger
- * /api/detalles/{facturaId}:
+ * /detalles/factura/{factura_id}:
  *   get:
- *     summary: Obtener detalles de una factura
+ *     summary: Obtener todos los detalles de una factura
  *     tags: [Detalles]
  *     parameters:
  *       - in: path
- *         name: facturaId
+ *         name: factura_id
  *         schema:
  *           type: integer
  *         required: true
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *         description: Número de página
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *         description: Cantidad de resultados por página
- *       - in: query
- *         name: producto
- *         schema:
- *           type: string
- *         description: Filtrar por nombre de producto
+ *         description: ID de la factura
  *     responses:
  *       200:
- *         description: Lista de detalles
- *       500:
- *         description: Error del servidor
+ *         description: Lista de detalles de la factura
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/DetalleFactura'
  */
-router.get('/:facturaId', async (req, res) => {
-    const { facturaId } = req.params;
-    let { page = 1, limit = 10, producto } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-    const offset = (page - 1) * limit;
+router.get("/factura/:factura_id", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT df.*, p.nombre as producto
+       FROM detalle_facturas df
+       JOIN productos p ON df.producto_id = p.id
+       WHERE df.factura_id = ?`,
+      [req.params.factura_id]
+    );
 
-    try {
-        let query = `
-            SELECT df.id, df.producto_id, p.nombre AS producto, df.cantidad, df.precio, df.subtotal
-            FROM detalle_facturas df
-            JOIN productos p ON df.producto_id = p.id
-            WHERE df.factura_id = ?
-        `;
-        const params = [facturaId];
-
-        if (producto) {
-            query += ` AND p.nombre LIKE ?`;
-            params.push(`%${producto}%`);
-        }
-
-        query += ` LIMIT ? OFFSET ?`;
-        params.push(limit, offset);
-
-        const [detalles] = await pool.execute(query, params);
-
-        res.json({
-            page,
-            limit,
-            data: detalles
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al obtener detalles' });
-    }
+    if (rows.length === 0) return res.status(404).json({ message: "No hay detalles para esta factura" });
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 /**
  * @swagger
- * /api/detalles/{detalleId}:
+ * /detalles/{id}:
  *   put:
  *     summary: Actualizar un detalle de factura
  *     tags: [Detalles]
  *     parameters:
  *       - in: path
- *         name: detalleId
+ *         name: id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: ID del detalle
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               cantidad:
- *                 type: integer
- *               precio:
- *                 type: number
- *                 format: decimal
+ *             $ref: '#/components/schemas/DetalleFactura'
  *     responses:
  *       200:
- *         description: Detalle actualizado
- *       500:
- *         description: Error del servidor
+ *         description: Detalle actualizado correctamente
+ *       404:
+ *         description: Detalle no encontrado
  */
-router.put('/:detalleId', async (req, res) => {
-    const { detalleId } = req.params;
-    const { cantidad, precio } = req.body;
+router.put("/:id", async (req, res) => {
+  try {
+    const { factura_id, producto_id, cantidad, precio } = req.body;
 
-    try {
-        const conn = await pool.getConnection();
-        await conn.beginTransaction();
+    const [result] = await pool.query(
+      "UPDATE detalle_facturas SET factura_id = ?, producto_id = ?, cantidad = ?, precio = ? WHERE id = ?",
+      [factura_id, producto_id, cantidad, precio, req.params.id]
+    );
 
-        await conn.execute(
-            `UPDATE detalle_facturas SET cantidad = ?, precio = ? WHERE id = ?`,
-            [cantidad, precio, detalleId]
-        );
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Detalle no encontrado" });
 
-        const [factura] = await conn.execute(
-            `SELECT factura_id FROM detalle_facturas WHERE id = ?`,
-            [detalleId]
-        );
-        if (factura.length === 0) return res.status(404).json({ error: 'Detalle no encontrado' });
+    // Recalcular total
+    await recalcularTotal(factura_id);
 
-        const facturaId = factura[0].factura_id;
-
-        const [totales] = await conn.execute(
-            `SELECT SUM(subtotal) AS total FROM detalle_facturas WHERE factura_id = ?`,
-            [facturaId]
-        );
-
-        await conn.execute(
-            `UPDATE facturas SET total = ? WHERE id = ?`,
-            [totales[0].total || 0, facturaId]
-        );
-
-        await conn.commit();
-        conn.release();
-
-        res.json({ message: 'Detalle actualizado y total recalculado' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al actualizar detalle' });
-    }
+    res.json({ message: "Detalle actualizado correctamente" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 /**
  * @swagger
- * /api/detalles/{detalleId}:
+ * /detalles/{id}:
  *   delete:
  *     summary: Eliminar un detalle de factura
  *     tags: [Detalles]
  *     parameters:
  *       - in: path
- *         name: detalleId
+ *         name: id
  *         schema:
  *           type: integer
  *         required: true
+ *         description: ID del detalle
  *     responses:
  *       200:
- *         description: Detalle eliminado
+ *         description: Detalle eliminado correctamente
  *       404:
  *         description: Detalle no encontrado
- *       500:
- *         description: Error del servidor
  */
-router.delete('/:detalleId', async (req, res) => {
-    const { detalleId } = req.params;
+router.delete("/:id", async (req, res) => {
+  try {
+    // obtener factura antes de borrar
+    const [detalle] = await pool.query("SELECT factura_id FROM detalle_facturas WHERE id = ?", [req.params.id]);
+    if (detalle.length === 0) return res.status(404).json({ message: "Detalle no encontrado" });
 
-    try {
-        const conn = await pool.getConnection();
-        await conn.beginTransaction();
+    const factura_id = detalle[0].factura_id;
 
-        const [detalle] = await conn.execute(
-            `SELECT factura_id FROM detalle_facturas WHERE id = ?`,
-            [detalleId]
-        );
-        if (detalle.length === 0) return res.status(404).json({ error: 'Detalle no encontrado' });
+    const [result] = await pool.query("DELETE FROM detalle_facturas WHERE id = ?", [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ message: "Detalle no encontrado" });
 
-        const facturaId = detalle[0].factura_id;
+    // Recalcular total
+    await recalcularTotal(factura_id);
 
-        await conn.execute(
-            `DELETE FROM detalle_facturas WHERE id = ?`,
-            [detalleId]
-        );
-
-        const [totales] = await conn.execute(
-            `SELECT SUM(subtotal) AS total FROM detalle_facturas WHERE factura_id = ?`,
-            [facturaId]
-        );
-
-        await conn.execute(
-            `UPDATE facturas SET total = ? WHERE id = ?`,
-            [totales[0].total || 0, facturaId]
-        );
-
-        await conn.commit();
-        conn.release();
-
-        res.json({ message: 'Detalle eliminado y total actualizado' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al eliminar detalle' });
-    }
+    res.json({ message: "Detalle eliminado correctamente" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-module.exports = router;
+export default router;

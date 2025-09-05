@@ -3,6 +3,7 @@ import cors from "cors";
 import productosRoutes from "./routes/productos.js";
 import clientesRoutes from "./routes/clientes.js";
 import facturasRoutes from "./routes/facturas.js";
+import detallesRoutes from "./routes/detalles.js";
 import { swaggerSpec, swaggerUi } from "./swagger.js";
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use("/api/productos", productosRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/facturas", facturasRoutes);
+app.use("/api/detalles", detallesRoutes);
 
 // Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
