@@ -1,0 +1,20 @@
+# producer/Dockerfile
+FROM node:20-alpine
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar package.json y package-lock.json primero
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm install
+
+# Copiar el resto del código
+COPY . .
+
+# Exponer el puerto en el que corre producer (3000)
+EXPOSE 3000
+
+# Comando por defecto
+CMD ["npm", "start"]

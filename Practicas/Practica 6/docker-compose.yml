@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # puerto de comunicación
+      - "15672:15672" # UI de administración
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s     # cada 5 segundos
+      timeout: 10s     # tiempo máximo de espera por intento
+      retries: 5       # intentará 5 veces
+      start_period: 5s # tiempo de gracia al arrancar
+
+  producer:
+    build: ./producer
+    container_name: producer
+    ports:
+      - "3000:3000"   # expone la API en localhost
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    restart: always
+
+  consumer:
+    build: ./consumer
+    container_name: consumer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    restart: always
